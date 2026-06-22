@@ -537,10 +537,10 @@ const perfiles = [
 
 // Pool de hints dinámicos por fase de conversación
 const hintsPool = {
-  diagnostico: ["¿Cuánto tiempo llevás jugando?", "¿Jugás en club o de vez en cuando?", "¿Qué deporte practicás, tenis o pádel?", "¿Buscás algo para jugar o para vestir?", "¿Tenés alguna molestia jugando actualmente?"],
-  estilo: ["¿Te gusta más atacar o defender?", "¿Jugás más en el fondo o subís a la red?", "¿Preferís potencia o control?", "¿Generás mucho topspin?", "¿Qué es lo que más te falla en tu juego?"],
+  diagnostico: ["¿Cuánto tiempo llevás jugando?", "¿Juegas en club o de vez en cuando?", "¿Qué deporte practicas, tenis o pádel?", "¿Buscás algo para jugar o para vestir?", "¿Tienes alguna molestia jugando actualmente?"],
+  estilo: ["¿Te gusta más atacar o defender?", "¿Juegas más en el fondo o subís a la red?", "¿Preferís potencia o control?", "¿Generás mucho topspin?", "¿Qué es lo que más te falla en tu juego?"],
   producto: ["¿Qué raqueta o pala usás actualmente?", "¿Cuánto tiempo lleva esa raqueta?", "¿Sentís que te falta potencia o control?", "¿La pala actual te cansa el brazo?", "¿Qué no te gusta de lo que tenés ahora?"],
-  cierre: ["Te propongo que la pruebes un momento", "Esta es la que mejor se adapta a tu juego", "La diferencia la vas a notar desde el primer partido", "¿Preferís algo más liviano o más firme?", "¿Tenés un presupuesto en mente?"],
+  cierre: ["Te propongo que la pruebes un momento", "Esta es la que mejor se adapta a tu juego", "La diferencia la vas a notar desde el primer partido", "¿Preferís algo más liviano o más firme?", "¿Tienes un presupuesto en mente?"],
 };
 
 // Fase actual de la conversación (avanza con cada turno)
@@ -587,9 +587,13 @@ Formato exacto:
 El campo "correct" es el índice (0-3) de la respuesta correcta.`;
 
   try {
-    const res = await fetch('/api/claude', {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': 'PEGA_TU_KEY_AQUI',
+        'anthropic-version': '2023-06-01'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
@@ -779,9 +783,13 @@ Empieza con ✅ si fue buena o ⚠️ si hay algo que mejorar. Sé directo y esp
 
 async function callClaude(system, messages) {
   try {
-    const res = await fetch('/api/claude', {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': 'PEGA_TU_KEY_AQUI',
+        'anthropic-version': '2023-06-01'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
