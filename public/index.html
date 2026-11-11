@@ -310,6 +310,7 @@
     display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;
   }
   .hint-chip {
+    font-family: inherit;
     background: var(--bg3); border: 1px solid var(--border2);
     color: var(--muted2); padding: 5px 12px; border-radius: 99px;
     font-size: 11px; font-weight: 500; cursor: pointer;
@@ -321,7 +322,11 @@
     .home-cards { grid-template-columns: 1fr; }
     .q-options { grid-template-columns: 1fr; }
     .perfil-selector { grid-template-columns: 1fr 1fr; }
-    nav { padding: 1rem; }
+    nav { padding: 0.75rem 1rem; flex-direction: column; gap: 0.6rem; }
+    #quiz, #cliente { padding: 1.25rem 1rem; }
+    .chat-messages { max-height: 55vh; }
+    .msg { max-width: 92%; }
+    .q-actions .q-btn { flex: 1; }
     .nav-tabs .tab-btn { padding: 6px 12px; font-size: 12px; }
   }
 </style>
@@ -346,13 +351,13 @@
     <div class="home-card" onclick="showScreen('quiz')">
       <div class="home-card-icon">🎯</div>
       <div class="home-card-title">Quiz Infinito</div>
-      <div class="home-card-desc">La IA genera preguntas nuevas cada vez sobre raquetas, palas, cuerdas y calzado. Nunca se repiten.</div>
+      <div class="home-card-desc">La IA genera preguntas nuevas cada vez sobre raquetas, palas, cuerdas, calzado y situaciones de venta.</div>
       <span class="home-card-tag">∞ Preguntas únicas</span>
     </div>
     <div class="home-card" onclick="showScreen('cliente')">
       <div class="home-card-icon">🧑‍💼</div>
       <div class="home-card-title">Simulador de Cliente</div>
-      <div class="home-card-desc">Practica con un cliente IA que tiene dudas, objeciones y compara precios. La IA evalúa tus respuestas.</div>
+      <div class="home-card-desc">Atiende a un cliente IA con dudas y objeciones reales. Un coach evalúa cada respuesta tuya.</div>
       <span class="home-card-tag">Feedback en tiempo real</span>
     </div>
   </div>
@@ -364,7 +369,7 @@
     <button class="back-btn" onclick="showScreen('home')">← Volver</button>
     <div class="quiz-meta">
       <span class="quiz-cat" id="q-cat">Cargando...</span>
-      <span class="quiz-count" id="q-count">P.0</span>
+      <span class="quiz-count" id="q-count"></span>
     </div>
   </div>
   <div class="score-bar">
@@ -394,7 +399,7 @@
 <div id="cliente" class="screen">
   <div class="cliente-header">
     <div class="cliente-title">Simulador de Cliente</div>
-    <div class="cliente-sub">Elige un perfil y practica cómo responder. La IA evalúa cada respuesta tuya.</div>
+    <div class="cliente-sub">Elige un cliente y atiéndelo como en la tienda. Recuerda: primero pregunta, después recomienda. El coach 🎓 evalúa cada respuesta.</div>
   </div>
 
   <div class="perfil-selector" id="perfil-selector">
@@ -414,19 +419,19 @@
       <div class="p-desc">Encontró más barato en otro lado. Hay que convencerlo.</div>
     </div>
     <div class="perfil-card" onclick="selectPerfil(3)">
-      <div class="p-icon">🦵</div>
-      <div class="p-name">El del codo/tobillo</div>
-      <div class="p-desc">Tiene molestias físicas. Busca solución, no specs.</div>
+      <div class="p-icon">💪</div>
+      <div class="p-name">La del codo</div>
+      <div class="p-desc">Le duele el codo jugando pádel. Busca solución, no specs.</div>
     </div>
     <div class="perfil-card" onclick="selectPerfil(4)">
       <div class="p-icon">👩</div>
       <div class="p-name">La clienta nueva</div>
-      <div class="p-desc">Empieza pádel. No sabe nada. Su marido juega hace años.</div>
+      <div class="p-desc">Empieza pádel. No sabe nada. Su pareja juega hace años.</div>
     </div>
     <div class="perfil-card" onclick="selectPerfil(5)">
       <div class="p-icon">🏆</div>
       <div class="p-name">El competidor amateur</div>
-      <div class="p-desc">15 años en el club. Compite pero no habla de specs.</div>
+      <div class="p-desc">15 años en el club. Compite y es exigente, pero no técnico.</div>
     </div>
   </div>
 
@@ -444,108 +449,62 @@
       <div class="hint-row" id="hint-row"></div>
     </div>
     <div class="chat-input-row">
-      <textarea class="chat-input" id="chat-input" placeholder="Escribe tu respuesta como vendedor..." rows="1"
+      <textarea class="chat-input" id="chat-input" placeholder="Escribe tu respuesta como vendedor..." rows="1" maxlength="800"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
         oninput="autoResize(this)"></textarea>
-      <button class="send-btn" id="send-btn" onclick="sendMsg()">↑</button>
+      <button class="send-btn" id="send-btn" onclick="sendMsg()" aria-label="Enviar">↑</button>
     </div>
   </div>
 </div>
 
 <script>
-// ===== KNOWLEDGE BASE =====
-const KB = `
-WILSON CHILE — MANUAL DE VENTAS 2026
-
-FILOSOFÍA: No vendas características, vende soluciones y sensaciones.
-
-6 PREGUNTAS CLAVE: 1) ¿Para qué las necesitas? 2) ¿Pádel o Tenis? 3) (Tenis) ¿Arcilla o Pista Dura? 4) (Pádel) ¿Velocidad o estabilidad? 5) ¿Qué es más importante: velocidad, estabilidad o comodidad? 6) ¿Sientes que las zapatillas te aprietan? (señal horma 2E)
-
-CALZADO:
-- Rush Pro 4.5: tenis alto rendimiento, chasis 4D Support 2.0, Energy Surge EVA
-- Rush Pro Ace: horma ancha 2E, pie ancho, R-DST+
-- Hurakn Lite/2.0/Pro V2: pádel, Spinner Outsole circular
-- Bela Tour: pádel top, Kaos Chassis doble arco, co-diseño Belasteguín
-- Intrigue Lite/Pro: mujer, talón estrecho, ajuste anatómico femenino
-- Pro Staff 87: lifestyle, cuero premium, NO apta para deporte
-
-RAQUETAS (eje POTENCIA→CONTROL: Clash·Ultra·Shift·Blade·RF·Pro Staff):
-- RF 01 PRO (320g, 98in², 16x19): atacante avanzado, legado Federer
-- RF 01 (300g): intermedio-avanzado completo
-- Pro Staff 97 (315g, 97in²): control puro, exige técnica, purista
-- Pro Staff 97L (290g): control accesible
-- Blade 98 V10 (305g): StableFeel+DirectConnect, control táctico
-- Blade 100 V10 (300g): control con tolerancia
-- Blade 100L V10 (285g): intermedio-principiante ligero
-- Shift 99 (300g, 16x20): topspin extremo
-- Clash 100 V3 (295g): salud del brazo, carbono flexible
-- Clash 100L V3 (280g): principiante-intermedio comodidad
-- Clash 108 V3 (280g): senior/principiante, mayor cabeza
-- Ultra 99 Pro (305g, 16x18): potencia agresiva
-- Ultra 100 (300g): potencia fácil intermedio
-- Ultra 100L (280g): principiante potencia
-- Ultra 100UL (260g): muy ligera, principiante
-
-CUERDAS (la cuerda = 50% rendimiento final):
-- Luxilon Alu Power Rough: monofilamento texturizado, máximo spin+control, Tour
-- Luxilon 4G Rough: tensión constante, fondo agresivo
-- Luxilon Adrenaline Rough: control accesible, intermedio
-- Revolver Spin: poliéster pentagonal, máximo spin
-- Revolver: poliéster liso, control+durabilidad
-- Wilson Sensation: multifilamento, brazo sensible, absorción impacto
-- Combos: Blade 98→Alu Power Rough | Clash 108→Revolver Spin | Ultra 100L→Sensation | RF 01 PRO→Alu Power Rough
-
-PALAS PÁDEL (forma: diamante=ataque, gota=versatilidad, redonda=control):
-- Defy V1/LS/Pro (diamante): atacante agresivo, carbono 3K/15K
-- Bela V3/Pro/LS (gota): intermedio-avanzado, carbono 3K/24K, Comfortflex LS
-- Blade V3/Pro/LS (lágrima): control estratégico, Carbon Fiberglass
-- Endure/Pro/LS (redonda): jugador frecuente, durabilidad
-- Optix (redonda): principiante, punto dulce amplio
-- Pesos: estándar=365g, Pro=370g, LS=355g
-- 3 preguntas: nivel, estilo, peso
-
-ARGUMENTARIO vs COMPETENCIA:
-- Wilson diseña SOLO para tenis/pádel (no adapta running)
-- +100 años de herencia profesional
-- Durabilidad = costo por uso real
-- Chasis torsional previene lesiones
-
-SPEECHS CIERRE:
-- "No vendas características, vende soluciones."
-- "Esta pieza evita que tu pie se vuelque en un apoyo lateral fuerte."
-- "La raqueta es el motor, la cuerda es la bujía."
-- "¿Vale la pena ahorrar $20.000 si la zapatilla te lesiona?"
-`;
-
-// ===== STATE =====
-let quizCorrect = 0, quizWrong = 0, quizTotal = 0, lastModel = '';
-let quizAnswered = false;
-let currentQuestion = null;
-
-let chatHistory = [];
-let selectedPerfil = null;
-let chatBusy = false;
+// ===== CONFIG =====
+// Los prompts y el manual viven en el servidor (api/claude.js + api/_kb.js).
+const API = '/api/claude';
+const QUIZ_CATS = ['Raquetas de Tenis','Raquetas de Tenis','Palas de Pádel','Palas de Pádel','Cuerdas y combos','Calzado','Situaciones de venta y objeciones'];
+const ROUND = 10;
 
 const perfiles = [
-  { name: "Ignacio", icon: "I", emoji: "🎾", desc: "Lleva 8 años jugando tenis en el club del barrio, nivel intermedio, compite en categoría 3. No sabe mucho de specs pero sabe lo que siente en cancha. Quiere renovar su raqueta y tiene dudas entre modelos. Compara precios." },
-  { name: "Matías", icon: "M", emoji: "🏓", desc: "Empezó a jugar pádel hace 6 meses con amigos del trabajo. Va una vez a la semana. Entusiasta pero sin experiencia. Quiere su primera pala propia, no sabe por dónde empezar y tiene miedo de gastar de más." },
-  { name: "Roberto", icon: "R", emoji: "💸", desc: "Jugador de tenis recreativo de toda la vida, 45 años, juega los sábados. Vio una raqueta más barata en Falabella o MercadoLibre. No entiende por qué Wilson vale más. Hay que convencerlo sin hablarle de tecnología." },
-  { name: "Carmen", icon: "C", emoji: "🦵", desc: "Jugadora de pádel de 3 veces por semana, lleva 2 años jugando. Le duele el codo desde hace un mes. Cree que es la pala. No sabe nada técnico, solo quiere que deje de dolerle y seguir jugando." },
-  { name: "Valentina", icon: "V", emoji: "👩", desc: "Mujer de 35 años, empieza a jugar pádel porque todas sus amigas juegan. Su pareja lleva años jugando y la trajo. No sabe nada, quiere algo cómodo y no muy caro. Se intimida fácil si le hablan muy técnico." },
-  { name: "Jorge", icon: "J", emoji: "🏅", desc: "Jugador de tenis de toda la vida, compite en torneos amateur del club, nivel 2. Lleva 15 años jugando. Sabe lo que le gusta en cancha pero no de marcas ni tecnología. Quiere mejorar su juego, es exigente pero no técnico." },
+  { name: 'Ignacio',   icon: 'I', emoji: '🎾' },
+  { name: 'Matías',    icon: 'M', emoji: '🏓' },
+  { name: 'Roberto',   icon: 'R', emoji: '💸' },
+  { name: 'Carmen',    icon: 'C', emoji: '💪' },
+  { name: 'Valentina', icon: 'V', emoji: '👩' },
+  { name: 'Jorge',     icon: 'J', emoji: '🏆' },
 ];
 
-// Pool de hints dinámicos por fase de conversación
 const hintsPool = {
-  diagnostico: ["¿Cuánto tiempo llevás jugando?", "¿Juegas en club o de vez en cuando?", "¿Qué deporte practicas, tenis o pádel?", "¿Buscás algo para jugar o para vestir?", "¿Tienes alguna molestia jugando actualmente?"],
-  estilo: ["¿Te gusta más atacar o defender?", "¿Juegas más en el fondo o subís a la red?", "¿Preferís potencia o control?", "¿Generás mucho topspin?", "¿Qué es lo que más te falla en tu juego?"],
-  producto: ["¿Qué raqueta o pala usás actualmente?", "¿Cuánto tiempo lleva esa raqueta?", "¿Sentís que te falta potencia o control?", "¿La pala actual te cansa el brazo?", "¿Qué no te gusta de lo que tenés ahora?"],
-  cierre: ["Te propongo que la pruebes un momento", "Esta es la que mejor se adapta a tu juego", "La diferencia la vas a notar desde el primer partido", "¿Preferís algo más liviano o más firme?", "¿Tienes un presupuesto en mente?"],
+  diagnostico: ['¡Hola! ¿Te puedo ayudar en algo?', '¿Cuánto tiempo llevas jugando?', '¿Juegas tenis o pádel?', '¿Juegas en club o más por diversión?', '¿Tienes alguna molestia cuando juegas?'],
+  estilo: ['¿Te gusta más atacar o defender?', '¿Juegas más desde el fondo o subes a la red?', '¿Qué prefieres: potencia, control o comodidad?', '¿Le pegas con mucho efecto?', '¿Qué es lo que más te falla en tu juego?'],
+  producto: ['¿Con qué raqueta o pala juegas hoy?', '¿Cuánto tiempo tiene tu raqueta actual?', '¿Sientes que te falta potencia o control?', '¿Tu pala actual te cansa el brazo?', '¿Qué no te gusta de la que tienes ahora?'],
+  cierre: ['¿Quieres probarla un momento?', 'Esta es la que mejor se adapta a tu juego', 'La diferencia la vas a notar desde el primer partido', '¿Te la llevo con una cuerda que le acomode?', '¿Tienes un presupuesto en mente?'],
 };
-
-// Fase actual de la conversación (avanza con cada turno)
-let hintPhase = 0;
 const hintPhases = ['diagnostico', 'estilo', 'producto', 'cierre'];
+
+// ===== STATE =====
+let quizCorrect = 0, quizWrong = 0, quizTotal = 0;
+let quizAnswered = false, quizLoading = false;
+let currentQuestion = null;
+let recentTopics = [];
+let catBag = [];
+
+let chatHistory = [];   // {role:'user'=vendedor | 'assistant'=cliente, content}
+let selectedPerfil = null;
+let chatBusy = false;
+let chatSession = 0;
+let hintPhase = 0;
+
+// ===== API =====
+async function api(payload) {
+  const res = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Error de conexión');
+  return data;
+}
 
 // ===== NAVIGATION =====
 function showScreen(id) {
@@ -554,59 +513,39 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
   const idx = ['home','quiz','cliente'].indexOf(id);
   document.querySelectorAll('.tab-btn')[idx].classList.add('active');
-  if (id === 'quiz' && quizTotal === 0) loadNewQuestion();
+  window.scrollTo(0, 0);
+  if (id === 'quiz' && !currentQuestion && !quizLoading) loadNewQuestion();
 }
 
 // ===== QUIZ =====
-async function loadNewQuestion() {
-  quizAnswered = false;
-  document.getElementById('q-loading').style.display = 'flex';
+function nextCat() {
+  if (!catBag.length) catBag = [...QUIZ_CATS].sort(() => Math.random() - 0.5);
+  return catBag.pop();
+}
+
+function showQuizLoading(html) {
+  const el = document.getElementById('q-loading');
+  el.innerHTML = html || '<div class="spinner"></div><span>Generando pregunta...</span>';
+  el.style.display = 'flex';
   document.getElementById('q-content').style.display = 'none';
-  document.getElementById('btn-reveal-q').style.display = 'inline-block';
-  document.getElementById('btn-next-q').style.display = 'none';
+}
+
+async function loadNewQuestion() {
+  if (quizLoading) return;
+  quizLoading = true;
+  quizAnswered = false;
+  showQuizLoading();
   document.getElementById('q-expl').classList.remove('visible');
 
-  const cats = ['Raquetas de Tenis', 'Raquetas de Tenis', 'Palas de Pádel', 'Palas de Pádel', 'Raquetas de Tenis — Cuerdas y Combos'];
-  const cat = cats[Math.floor(Math.random() * cats.length)];
-
-  const prompt = `Eres un experto en Wilson Chile. Basándote en este manual de ventas, genera UNA pregunta de opción múltiple sobre "${cat}".
-
-MANUAL:
-${KB}
-
-REGLAS ESTRICTAS:
-- La pregunta debe ser específica, técnica y no repetir conceptos básicos
-- 4 opciones (A, B, C, D), solo una correcta
-- Las opciones incorrectas deben ser plausibles, no obvias
-- Incluye una explicación corta de por qué es correcta (máx 2 líneas)
-- Responde SOLO en JSON válido, sin texto extra, sin markdown
-
-Formato exacto:
-{"cat":"${cat}","q":"pregunta aquí","opts":["opción A","opción B","opción C","opción D"],"correct":0,"tip":"explicación aquí"}
-
-El campo "correct" es el índice (0-3) de la respuesta correcta.`;
-
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': 'PEGA_TU_KEY_AQUI',
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    const data = await res.json();
-    let text = data.content.map(c => c.text || '').join('').trim();
-    text = text.replace(/```json|```/g, '').trim();
-    currentQuestion = JSON.parse(text);
-    renderQuestion(currentQuestion);
-  } catch(e) {
-    document.getElementById('q-loading').innerHTML = '<p style="color:var(--muted2)">Error al generar pregunta. Reintentando...</p><button class="q-btn primary" onclick="loadNewQuestion()" style="margin-top:1rem">Reintentar</button>';
+    const { question } = await api({ task: 'quiz', cat: nextCat(), avoid: recentTopics });
+    currentQuestion = question;
+    if (question.modelo) recentTopics = [...recentTopics, question.modelo].slice(-8);
+    renderQuestion(question);
+  } catch (e) {
+    showQuizLoading('<p style="color:var(--muted2)">No se pudo generar la pregunta.</p><button class="q-btn primary" onclick="loadNewQuestion()" style="margin-top:1rem">Reintentar</button>');
+  } finally {
+    quizLoading = false;
   }
 }
 
@@ -614,10 +553,19 @@ function renderQuestion(q) {
   quizTotal++;
   document.getElementById('q-loading').style.display = 'none';
   document.getElementById('q-content').style.display = 'block';
-  document.getElementById('q-cat').textContent = q.cat;
-  document.getElementById('q-count').textContent = `P.${quizTotal}`;
+  document.getElementById('btn-reveal-q').style.display = 'inline-block';
+  document.getElementById('btn-next-q').style.display = 'none';
+  document.getElementById('q-cat').textContent = q.cat || '';
+  const round = Math.floor((quizTotal - 1) / ROUND) + 1;
+  const inRound = ((quizTotal - 1) % ROUND) + 1;
+  document.getElementById('q-count').textContent = `Ronda ${round} · ${inRound}/${ROUND}`;
   document.getElementById('q-text').textContent = q.q;
-  document.getElementById('q-expl').innerHTML = q.tip;
+  const expl = document.getElementById('q-expl');
+  expl.innerHTML = '';
+  const strong = document.createElement('strong');
+  strong.textContent = '💡 ';
+  expl.appendChild(strong);
+  expl.appendChild(document.createTextNode(q.tip || ''));
 
   const letters = ['A','B','C','D'];
   const container = document.getElementById('q-options');
@@ -625,188 +573,157 @@ function renderQuestion(q) {
   q.opts.forEach((opt, i) => {
     const btn = document.createElement('button');
     btn.className = 'opt-btn';
-    btn.innerHTML = `<span class="opt-letter">${letters[i]}</span>${opt}`;
+    const l = document.createElement('span');
+    l.className = 'opt-letter';
+    l.textContent = letters[i];
+    btn.appendChild(l);
+    btn.appendChild(document.createTextNode(opt));
     btn.onclick = () => selectQuizAnswer(i);
     container.appendChild(btn);
   });
 
   updateScoreBar();
-  const pct = Math.min((quizTotal / 20) * 100, 100);
-  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-fill').style.width = (inRound / ROUND * 100) + '%';
 }
 
-function selectQuizAnswer(idx) {
-  if (quizAnswered) return;
+function finishAnswer() {
   quizAnswered = true;
-  const q = currentQuestion;
-  const btns = document.querySelectorAll('.opt-btn');
-  btns.forEach(b => b.disabled = true);
-  if (idx === q.correct) { btns[idx].classList.add('correct'); quizCorrect++; }
-  else { btns[idx].classList.add('wrong'); btns[q.correct].classList.add('reveal'); quizWrong++; }
   document.getElementById('q-expl').classList.add('visible');
   document.getElementById('btn-reveal-q').style.display = 'none';
   document.getElementById('btn-next-q').style.display = 'inline-block';
   updateScoreBar();
 }
 
+function selectQuizAnswer(idx) {
+  if (quizAnswered) return;
+  const q = currentQuestion;
+  const btns = document.querySelectorAll('.opt-btn');
+  btns.forEach(b => b.disabled = true);
+  if (idx === q.correct) { btns[idx].classList.add('correct'); quizCorrect++; }
+  else { btns[idx].classList.add('wrong'); btns[q.correct].classList.add('reveal'); quizWrong++; }
+  finishAnswer();
+}
+
 function revealQuizAnswer() {
   if (quizAnswered) return;
-  quizAnswered = true;
-  const q = currentQuestion;
-  document.querySelectorAll('.opt-btn').forEach((b,i) => {
+  document.querySelectorAll('.opt-btn').forEach((b, i) => {
     b.disabled = true;
-    if (i === q.correct) b.classList.add('reveal');
+    if (i === currentQuestion.correct) b.classList.add('reveal');
   });
-  document.getElementById('q-expl').classList.add('visible');
-  document.getElementById('btn-reveal-q').style.display = 'none';
-  document.getElementById('btn-next-q').style.display = 'inline-block';
+  quizWrong++; // ver la respuesta cuenta como no lograda
+  finishAnswer();
 }
 
 function updateScoreBar() {
   document.getElementById('s-correct').textContent = quizCorrect;
   document.getElementById('s-wrong').textContent = quizWrong;
   const total = quizCorrect + quizWrong;
-  const pct = total > 0 ? Math.round((quizCorrect / total) * 100) : 0;
-  document.getElementById('s-pct').textContent = total > 0 ? pct + '%' : '—';
+  document.getElementById('s-pct').textContent = total > 0 ? Math.round(quizCorrect / total * 100) + '% de acierto' : '—';
 }
 
 // ===== CLIENTE IA =====
 function selectPerfil(idx) {
   selectedPerfil = idx;
-  document.querySelectorAll('.perfil-card').forEach((c,i) => c.classList.toggle('selected', i===idx));
+  chatSession++;
   const p = perfiles[idx];
   document.getElementById('chat-avatar').textContent = p.icon;
-  document.getElementById('chat-name').textContent = p.name + ' — ' + p.emoji;
+  document.getElementById('chat-name').textContent = p.name + ' ' + p.emoji;
   document.getElementById('chat-window').style.display = 'block';
   document.getElementById('perfil-selector').style.display = 'none';
   chatHistory = [];
   hintPhase = 0;
+  chatBusy = false;
   document.getElementById('chat-msgs').innerHTML = '';
-  renderHints(idx);
-  startConversation(idx);
-}
-
-function renderHints(idx) {
   refreshHints();
+  clienteTurn(chatSession);
 }
 
 function refreshHints() {
   const row = document.getElementById('hint-row');
   row.innerHTML = '';
-  const phase = hintPhases[Math.min(hintPhase, hintPhases.length - 1)];
-  const pool = hintsPool[phase];
-  // Pick 3 random hints from current phase pool
-  const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 3);
-  shuffled.forEach(h => {
-    const chip = document.createElement('div');
+  const pool = hintsPool[hintPhases[Math.min(hintPhase, hintPhases.length - 1)]];
+  [...pool].sort(() => Math.random() - 0.5).slice(0, 3).forEach(h => {
+    const chip = document.createElement('button');
     chip.className = 'hint-chip';
     chip.textContent = h;
-    chip.onclick = () => { document.getElementById('chat-input').value = h; document.getElementById('chat-input').focus(); };
+    chip.onclick = () => { const i = document.getElementById('chat-input'); i.value = h; i.focus(); autoResize(i); };
     row.appendChild(chip);
   });
 }
 
-async function startConversation(idx) {
-  chatBusy = true;
-  document.getElementById('send-btn').disabled = true;
-  appendTyping();
+function setBusy(b) {
+  chatBusy = b;
+  document.getElementById('send-btn').disabled = b;
+}
 
-  const systemPrompt = `Eres un cliente en una tienda Wilson Chile. Tu perfil: ${perfiles[idx].desc}.
-Actúas de forma realista — tienes dudas, objeciones y preguntas reales de un cliente.
-Mantén el personaje en todo momento. Responde en 1-3 frases cortas, naturales.
-Inicia la conversación entrando a la tienda.`;
+async function clienteTurn(session) {
+  setBusy(true);
+  appendTyping(perfiles[selectedPerfil].icon);
+  try {
+    const { text } = await api({ task: 'cliente', perfil: selectedPerfil, messages: chatHistory });
+    if (session !== chatSession) return;
+    removeTyping();
+    appendMsg('cliente-msg', perfiles[selectedPerfil].icon, text);
+    chatHistory.push({ role: 'assistant', content: text });
+  } catch (e) {
+    if (session !== chatSession) return;
+    removeTyping();
+    appendRetry(() => clienteTurn(session));
+  } finally {
+    if (session === chatSession) setBusy(false);
+  }
+}
 
-  const res = await callClaude(systemPrompt, [{ role: 'user', content: 'Empieza la conversación como el cliente entrando a la tienda.' }]);
-  removeTyping();
-  appendMsg('cliente-msg', perfiles[idx].icon, res);
-  chatHistory.push({ role: 'assistant', content: res });
-  chatBusy = false;
-  document.getElementById('send-btn').disabled = false;
+async function coachTurn(session) {
+  appendTyping('🎓');
+  try {
+    const { text } = await api({ task: 'coach', perfil: selectedPerfil, messages: chatHistory });
+    if (session !== chatSession) return;
+    removeTyping();
+    appendFeedback(text);
+  } catch (e) {
+    if (session !== chatSession) return;
+    removeTyping();
+  }
 }
 
 async function sendMsg() {
-  if (chatBusy) return;
+  if (chatBusy || selectedPerfil === null) return;
   const input = document.getElementById('chat-input');
-  const text = input.value.trim();
+  const text = input.value.trim().slice(0, 800);
   if (!text) return;
-
   input.value = '';
   autoResize(input);
   appendMsg('vendedor', 'Tú', text);
   chatHistory.push({ role: 'user', content: text });
-  chatBusy = true;
-  document.getElementById('send-btn').disabled = true;
-  appendTyping();
 
-  const p = perfiles[selectedPerfil];
+  const session = chatSession;
+  setBusy(true);
+  // Coach y cliente en paralelo: el coach evalúa tu mensaje, el cliente responde.
+  const coachHistory = [...chatHistory];
+  const coachP = api({ task: 'coach', perfil: selectedPerfil, messages: coachHistory }).catch(() => null);
+  await clienteTurn(session);
+  if (session !== chatSession) return;
+  const coach = await coachP;
+  if (session !== chatSession) return;
+  if (coach && coach.text) appendFeedback(coach.text);
 
-  // Cliente responde
-  const clienteSystem = `Eres ${p.name}, cliente en Wilson Chile. Perfil: ${p.desc}.
-Actúa de forma realista. El vendedor acaba de responderte. Reacciona naturalmente en 1-3 frases.
-Si el vendedor hizo una buena pregunta de diagnóstico, dale información relevante.
-Si intentó vender sin preguntar, muéstrate confundido o escéptico.`;
-
-  const clienteRes = await callClaude(clienteSystem, chatHistory);
-  removeTyping();
-  appendMsg('cliente-msg', p.icon, clienteRes);
-  chatHistory.push({ role: 'assistant', content: clienteRes });
-
-  // Feedback del coach
-  appendTyping('coach');
-  const feedbackSystem = `Eres un coach de ventas Wilson Chile experto. Evalúa la última respuesta del VENDEDOR.
-
-MANUAL WILSON:
-${KB}
-
-La última respuesta del vendedor fue: "${text}"
-
-Evalúa en máx 2 líneas si:
-- Usó las preguntas correctas de diagnóstico
-- Recomendó bien según el perfil
-- Usó argumentos de solución (no specs)
-- Hay algo que mejorar
-
-Empieza con ✅ si fue buena o ⚠️ si hay algo que mejorar. Sé directo y específico.`;
-
-  const feedbackRes = await callClaude(feedbackSystem, [{ role: 'user', content: `Vendedor dijo: "${text}". Cliente es: ${p.desc}` }]);
-  removeTyping();
-  appendFeedback(feedbackRes);
-
-  // Avanzar fase de hints
   hintPhase = Math.min(hintPhase + 1, hintPhases.length - 1);
   refreshHints();
-
-  chatBusy = false;
-  document.getElementById('send-btn').disabled = false;
   scrollChat();
-}
-
-async function callClaude(system, messages) {
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': 'PEGA_TU_KEY_AQUI',
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system,
-        messages
-      })
-    });
-    const data = await res.json();
-    return data.content.map(c => c.text || '').join('').trim();
-  } catch(e) { return '(Error de conexión)'; }
 }
 
 function appendMsg(type, avatar, text) {
   const msgs = document.getElementById('chat-msgs');
   const div = document.createElement('div');
   div.className = `msg ${type}`;
-  div.innerHTML = `<div class="msg-avatar">${avatar === 'Tú' ? 'Tú' : avatar}</div><div class="msg-bubble">${text}</div>`;
+  const a = document.createElement('div');
+  a.className = 'msg-avatar';
+  a.textContent = avatar;
+  const b = document.createElement('div');
+  b.className = 'msg-bubble';
+  b.textContent = text;
+  div.append(a, b);
   msgs.appendChild(div);
   scrollChat();
 }
@@ -814,19 +731,35 @@ function appendMsg(type, avatar, text) {
 function appendFeedback(text) {
   const msgs = document.getElementById('chat-msgs');
   const div = document.createElement('div');
-  const isGood = text.startsWith('✅');
-  div.className = `feedback-bubble ${isGood ? 'good' : 'bad'}`;
+  div.className = `feedback-bubble ${text.trim().startsWith('✅') ? 'good' : 'bad'}`;
   div.textContent = '🎓 Coach: ' + text;
   msgs.appendChild(div);
   scrollChat();
 }
 
-function appendTyping(type) {
+function appendRetry(fn) {
+  const msgs = document.getElementById('chat-msgs');
+  const div = document.createElement('div');
+  div.className = 'feedback-bubble bad';
+  div.textContent = 'No se pudo conectar con la IA. ';
+  const btn = document.createElement('button');
+  btn.className = 'chat-reset';
+  btn.style.marginLeft = '8px';
+  btn.textContent = 'Reintentar';
+  btn.onclick = () => { div.remove(); fn(); };
+  div.appendChild(btn);
+  msgs.appendChild(div);
+  scrollChat();
+}
+
+function appendTyping(avatar) {
+  removeTyping();
   const msgs = document.getElementById('chat-msgs');
   const div = document.createElement('div');
   div.className = 'msg cliente-msg msg-typing';
   div.id = 'typing-indicator';
-  div.innerHTML = `<div class="msg-avatar">···</div><div class="msg-bubble">Escribiendo...</div>`;
+  div.innerHTML = '<div class="msg-avatar"></div><div class="msg-bubble">Escribiendo...</div>';
+  div.firstChild.textContent = avatar || '···';
   msgs.appendChild(div);
   scrollChat();
 }
@@ -842,11 +775,12 @@ function scrollChat() {
 }
 
 function resetChat() {
+  chatSession++;
   document.getElementById('chat-window').style.display = 'none';
   document.getElementById('perfil-selector').style.display = 'grid';
-  document.querySelectorAll('.perfil-card').forEach(c => c.classList.remove('selected'));
   chatHistory = [];
   selectedPerfil = null;
+  setBusy(false);
 }
 
 function autoResize(el) {
