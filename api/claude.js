@@ -136,7 +136,9 @@ export default async function handler(req, res) {
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
         body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: 'user', content: 'Di ok' }] }),
       }).catch(() => null);
-      out[model] = r ? r.status : 'sin conexión';
+      if (!r) { out[model] = 'sin conexión'; continue; }
+      const j = await r.json().catch(() => ({}));
+      out[model] = r.ok ? 'ok' : `${r.status}: ${(j.error && j.error.message || '').slice(0, 160)}`;
     }
     return res.status(200).json(out);
   }
