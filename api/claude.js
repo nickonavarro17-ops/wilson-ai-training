@@ -73,6 +73,49 @@ Si el vendedor recomienda un producto equivocado para el perfil, dilo y sugiere 
 Formato: máx 2 líneas. Empieza con ✅ si estuvo bien o ⚠️ si hay algo que mejorar. Si es ⚠️, da un ejemplo concreto de qué podría decir.`;
 }
 
+// ===== Gemini (plan gratuito de Google AI Studio) =====
+const GEMINI_MAIN = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_FAST = process.env.GEMINI_MODEL_FAST || 'gemini-2.5-flash-lite';
+
+async function callGemini(apiKey, model, { system, messages, max_tokens, temperature }) {
+  const gen = { maxOutputTokens: Math.max(max_tokens, 400), temperature: temperature ?? 0.9 };
+  if (model.startsWith('gemini-2.5')) gen.thinkingConfig = { thinkingBudget: 0 };
+  const body = {
+    contents: messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+    generationConfig: gen,
+  };
+  if (system) body.systemInstruction = { parts: [{ text: system }] };
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify(body),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const e = new Error(data?.error?.message || `HTTP ${r.status}`);
+    e.status = r.status;
+    throw e;
+  }
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  const text = parts.filter(p => !p.thought).map(p => p.text || '').join('').trim();
+  if (!text) throw new Error('Respuesta vacía');
+  return text;
+}
+
+// Usa Gemini si hay GEMINI_API_KEY (gratis); si no, Anthropic.
+async function callAI(body) {
+  const gKey = process.env.GEMINI_API_KEY;
+  if (gKey) {
+    const model = body.model === MODEL_FAST ? GEMINI_FAST : GEMINI_MAIN;
+    try { return await callGemini(gKey, model, body); }
+    catch (e) {
+      if (e.status === 429 && model !== GEMINI_FAST) return callGemini(gKey, GEMINI_FAST, body);
+      throw e;
+    }
+  }
+  return callAnthropic(process.env.ANTHROPIC_API_KEY, body);
+}
+
 async function callAnthropic(apiKey, body) {
   const doFetch = (model) => fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -122,14 +165,23 @@ function transcript(msgs, name) {
 }
 
 export default async function handler(req, res) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY;
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'anon';
 
   // Chequeo de salud: GET /api/claude?check=1 → confirma key y modelos.
-  if (req.method === 'GET' && req.query && req.query.check) {
+  const query = req.query || Object.fromEntries(new URL(req.url, 'http://x').searchParams);
+  if (req.method === 'GET' && query.check) {
     if (!apiKey) return res.status(200).json({ key: false });
     if (rateLimited(ip)) return res.status(429).json({ error: 'rate' });
-    const out = { key: true };
+    if (process.env.GEMINI_API_KEY) {
+      const out = { proveedor: 'gemini' };
+      for (const model of [GEMINI_MAIN, GEMINI_FAST]) {
+        try { await callGemini(process.env.GEMINI_API_KEY, model, { messages: [{ role: 'user', content: 'Di ok' }], max_tokens: 20 }); out[model] = 'ok'; }
+        catch (e) { out[model] = `${e.status || ''}: ${String(e.message).slice(0, 160)}`; }
+      }
+      return res.status(200).json(out);
+    }
+    const out = { proveedor: 'anthropic', key: true };
     for (const model of [MODEL_MAIN, MODEL_FAST, MODEL_FALLBACK]) {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -155,7 +207,7 @@ export default async function handler(req, res) {
     if (task === 'quiz') {
       const cat = QUIZ_CATS.includes(body.cat) ? body.cat : QUIZ_CATS[Math.floor(Math.random() * QUIZ_CATS.length)];
       const avoid = Array.isArray(body.avoid) ? body.avoid.slice(-8).map(s => String(s).slice(0, 40)) : [];
-      const text = await callAnthropic(apiKey, {
+      const text = await callAI({
         model: MODEL_FAST, max_tokens: 600, temperature: 1,
         messages: [{ role: 'user', content: quizPrompt(cat, avoid) }],
       });
@@ -172,7 +224,7 @@ export default async function handler(req, res) {
     if (!msgs) return res.status(400).json({ error: 'Mensajes inválidos' });
 
     if (task === 'cliente') {
-      const text = await callAnthropic(apiKey, {
+      const text = await callAI({
         model: MODEL_MAIN, max_tokens: 300,
         system: clientePrompt(p),
         messages: forCliente(msgs),
@@ -182,7 +234,7 @@ export default async function handler(req, res) {
 
     if (task === 'coach') {
       if (!msgs.some(m => m.role === 'user')) return res.status(400).json({ error: 'No hay mensaje del vendedor' });
-      const text = await callAnthropic(apiKey, {
+      const text = await callAI({
         model: MODEL_MAIN, max_tokens: 250,
         system: coachPrompt(p),
         messages: [{ role: 'user', content: `CONVERSACIÓN HASTA AHORA:\n${transcript(msgs, p.name)}\n\nEvalúa el último mensaje del VENDEDOR.` }],
